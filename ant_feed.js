@@ -5,6 +5,7 @@ const speedSensor = new Ant.SpeedSensor(stick);
 const express = require("express")
 const socketIO = require('socket.io');
 const http = require('http')
+const port = process.env.PORT || 4321;
 
 let server = http.createServer(express()) 
 let cr= {
@@ -20,7 +21,7 @@ let lastPrintSpeedTime = Date.now();
 let lastPrintCadenceTime = Date.now();
 
 function initSocket(){
-    server.listen(4321)
+    server.listen(port)
     io.on('connection', (sock)=>{
         socket=sock;
         console.log(`New user connected ${socket.id}`)

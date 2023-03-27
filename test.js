@@ -79,7 +79,7 @@ function onData(profile, deviceID, data) {
     if(currentTime-lastPrintCadenceTime>=msg_limit){
         if(profile=="SPD"){
             console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
-            send({ts:new Date(),move:data.motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance})
+            send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revoltion:data.CumulativeSpeedRevolutionCount})
             lastPrintCadenceTime=currentTime;
         }
         else{

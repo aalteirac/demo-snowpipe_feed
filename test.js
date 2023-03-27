@@ -17,7 +17,8 @@ let socket;
 
 const ant = new AntDevice({ startupTimeout: 2000 })
 const msg_limit=1000;
-let lastPrintTime = Date.now();
+let lastPrintSpeedTime = Date.now();
+let lastPrintCadenceTime = Date.now();
 
 function initSocket(){
     server.listen(port)
@@ -75,17 +76,21 @@ async function initAnt(deviceID = -1) {
 
 function onData(profile, deviceID, data) {
     const currentTime=Date.now();
-    if(currentTime-lastPrintTime>=msg_limit){
+    
         if(profile=="SPD"){
-            console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
-            send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revoltion:data.CumulativeSpeedRevolutionCount})
+            if(currentTime-lastPrintSpeedTime>=msg_limit){
+                console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
+                send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revoltion:data.CumulativeSpeedRevolutionCount})
+                lastPrintSpeedTime=currentTime
+            }
         }
         else{
-            console.log(`id: ANT+${profile} ${deviceID}, cadence: ${data.CalculatedCadence}`);
-            send({ts:new Date(),cadence:data.CalculatedCadence})
+            if(currentTime-lastPrintCadenceTime>=msg_limit){
+                console.log(`id: ANT+${profile} ${deviceID}, cadence: ${data.CalculatedCadence}`);
+                send({ts:new Date(),cadence:data.CalculatedCadence,lastevent:data.CadenceEventTime})
+                lastPrintCadenceTime=currentTime
+            }
         }
-        lastPrintTime=currentTime;
-    }
 
 }
 

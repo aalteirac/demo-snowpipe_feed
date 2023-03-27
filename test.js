@@ -1,17 +1,8 @@
 const { SpeedSensor } = require('incyclist-ant-plus');
 const { AntDevice } = require('incyclist-ant-plus/lib/bindings')
-const express = require("express")
-const socketIO = require('socket.io');
-const http = require('http')
+const io = require('socket.io')();
 const port = process.env.PORT || 4321;
 
-let server = http.createServer(express()) 
-let cr= {
-    origin: "*",
-    methods: ["GET", "POST"],
-    allowedHeaders: ["content-type"]
-  }
-let io = socketIO(server,{cors:cr}) 
 
 let socket;
 
@@ -21,7 +12,8 @@ let lastPrintSpeedTime = Date.now();
 let lastPrintCadenceTime = Date.now();
 
 function initSocket(){
-    server.listen(port)
+    console.log('SOCKET OK');
+    io.listen(port);
     io.on('connection', (sock)=>{
         socket=sock;
         console.log(`New user connected ${socket.id}`)
@@ -81,6 +73,9 @@ function onData(profile, deviceID, data) {
 }
 
 async function onAppExit() {
+    if(socket)
+        socket.close();
+    console.log("Closing ant")
     await ant.close();
     return 0;
 }

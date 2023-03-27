@@ -24,7 +24,6 @@ async function main(deviceID = -1) {
     if (deviceID === -1) { // scanning for device
         console.log('Scanning for sensor(s)')
         const speedSensor = new SpeedSensor()
-        speedSensor.
         channel.startScanner()
         channel.attach(speedSensor)
     }

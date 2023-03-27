@@ -1,4 +1,4 @@
-FROM node:10
+FROM node:18
 
 COPY ant-usb-m.rules /etc/udev/rules.d
 
@@ -14,4 +14,4 @@ RUN npm install
 
 
 # Run app.js when the container launches
-CMD ["node", "ant_feed.js"]
+CMD ["node", "test.js"]

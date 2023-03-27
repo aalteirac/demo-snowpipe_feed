@@ -19,3 +19,4 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="0fcf", ATTRS{idProduct}=="1009", RUN+="/sbin
 
 Seems node 19 is the image to go for usb node lib. with devices on ttyUSB0 (need to ensure ANT stick is always mounted on this one)
 
+

@@ -1,6 +1,11 @@
 const { SpeedSensor } = require('incyclist-ant-plus');
 const { AntDevice } = require('incyclist-ant-plus/lib/bindings')
-const io = require('socket.io')();
+let cr= {
+    origin: "*",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["content-type"]
+  }
+const io = require('socket.io')(cr);
 const port = process.env.PORT || 4321;
 
 

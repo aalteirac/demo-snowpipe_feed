@@ -37,7 +37,7 @@ async function main(deviceID = -1) {
 function onData(profile, deviceID, data) {
     const currentTime=Date.now();
     if(currentTime-lastMsgTS>=msg_limit){
-        console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}`);
+        console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, revol:${data.CumulativeSpeedRevolutionCount},revol:${data.Motion}`);
         lastMsgTS=currentTime;
     }
 

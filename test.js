@@ -1,4 +1,4 @@
-const { SpeedSensor } = require('incyclist-ant-plus');
+const { SpeedSensor, CadenceSensor } = require('incyclist-ant-plus');
 const { AntDevice } = require('incyclist-ant-plus/lib/bindings')
 const express = require("express")
 const socketIO = require('socket.io');
@@ -53,30 +53,39 @@ async function initAnt(deviceID = -1) {
         console.log('could not open channel')
         return;
     }
-    console.log(`Channel ${channel.getChannelNo()}`)
+
+    console.log(`Channel fro speed ${channel.getChannelNo()}, Channel for Cadence ${channel.getChannelNo()}`)
 
     channel.on('data', onData)
 
     if (deviceID === -1) { // scanning for device
         console.log('Scanning for sensor(s)')
         const speedSensor = new SpeedSensor()
+        speedSensor.setWheelCircumference(4.818);
+        const cadenceSensor=new CadenceSensor();
         channel.startScanner()
+        channel.attach(cadenceSensor)
         channel.attach(speedSensor)
     }
     else {  // device ID known
         console.log(`Connecting with id=${deviceID}`)
         const speedSensor = new SpeedSensor(deviceID)
-        speedSensor.setWheelCircumference(4.818);
         channel.startSensor(speedSensor)
     }
 }
 
 function onData(profile, deviceID, data) {
     const currentTime=Date.now();
-    if(currentTime-lastPrintSpeedTime>=msg_limit){
-        console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
-        send({ts:new Date(),speed:data.CalculatedSpeed,distance:data.CalculatedDistance})
-        lastPrintSpeedTime=currentTime;
+    if(currentTime-lastPrintCadenceTime>=msg_limit){
+        if(profile=="SPD"){
+            console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
+            send({ts:new Date(),move:data.motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance})
+            lastPrintCadenceTime=currentTime;
+        }
+        else{
+            console.log(`id: ANT+${profile} ${deviceID}, cadence: ${data.CalculatedCadence}`);
+            send({ts:new Date(),cadence:data.CalculatedCadence})
+        }
     }
 
 }

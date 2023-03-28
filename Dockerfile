@@ -14,4 +14,4 @@ RUN npm install
 
 
 # Run app.js when the container launches
-CMD ["node", "test.js"]
+CMD ["node", "ant_feed.js"]

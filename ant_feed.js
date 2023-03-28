@@ -1,11 +1,10 @@
-const Ant = require('aai-ant-plus');
-const stick = new Ant.GarminStick3;
-const cadenceSensor = new Ant.CadenceSensor(stick);
-const speedSensor = new Ant.SpeedSensor(stick);
+const { SpeedSensor, CadenceSensor } = require('incyclist-ant-plus');
+const { AntDevice } = require('incyclist-ant-plus/lib/bindings')
 const express = require("express")
 const socketIO = require('socket.io');
 const http = require('http')
 const port = process.env.PORT || 4321;
+const debug = process.env.DEBUG || false;
 
 let server = http.createServer(express()) 
 let cr= {
@@ -14,20 +13,23 @@ let cr= {
     allowedHeaders: ["content-type"]
   }
 let io = socketIO(server,{cors:cr}) 
+
 let socket;
 
-var checkOldval=-1;
+const ant = new AntDevice({ startupTimeout: 2000 })
+const msg_limit=1000;
 let lastPrintSpeedTime = Date.now();
 let lastPrintCadenceTime = Date.now();
 
 function initSocket(){
     server.listen(port)
+    console.log('SOCKET OK')
     io.on('connection', (sock)=>{
         socket=sock;
-        console.log(`New user connected ${socket.id}`)
+        if(debug==true )console.log(`New user connected ${socket.id}`)
         socket.on("message", (data) => {
             let event = JSON.parse(data)
-            console.log('EVENT',event)
+            if(debug==true )console.log('EVENT',event)
         })
     });
 }
@@ -38,57 +40,80 @@ function send(msg){
     }
         
 }
-async function initANT(){
+
+async function initAnt(deviceID = -1) {
     initSocket();
-    speedSensor.setWheelCircumference(4.818);
-    speedSensor.on('speedData', async data => {
-        if(checkOldval!=data.CalculatedSpeed){
-            const currentTime = Date.now();
-            if (currentTime - lastPrintSpeedTime >= 400) { 
-              console.log('SPEED  ', new Date(), data.CalculatedSpeed, data.CalculatedDistance);
-              send({ts:new Date(),speed:data.CalculatedSpeed,distance:data.CalculatedDistance})
-              lastPrintSpeedTime = currentTime;
-            }
-            checkOldval=data.CalculatedSpeed;
-        }
-    });
+    const opened = await ant.open()
+    if (!opened) {
+        console.log('could not open Ant Stick')
+        return;
+    }
 
-    cadenceSensor.on('cadenceData', data => {
-        if(true){
-            const currentTime = Date.now();
-            if (currentTime - lastPrintCadenceTime >= 400) { 
-                console.log('CADENCE',new Date(),data.CalculatedCadence);
-                send({ts:new Date(),cadence:data.CalculatedCadence})
-                lastPrintCadenceTime = currentTime;
-            }
-        }   
-    });
+    const channel = ant.getChannel();
+    if (!channel) {
+        console.log('could not open channel')
+        return;
+    }
 
-    stick.on('startup', function () {
-        console.log('startup');
-        speedSensor.attach(0, 0)
-        console.log('SPEED SENSOR ATTACHED')
-        setTimeout(()=>{
-            cadenceSensor.attach(1, 0);
-            console.log('CADENCE SENSOR ATTACHED')
-        },2000)
-    });
+    channel.on('data', onData);
+    channel.on('detected', onDetected);
 
-    if (!stick.open()) {
-        console.log('Stick not found!');
+    if (deviceID === -1) { // scanning for device
+        console.log('Scanning for sensor(s)')
+        const speedSensor = new SpeedSensor()
+        speedSensor.setWheelCircumference(4.818);
+        const cadenceSensor=new CadenceSensor();
+        channel.startScanner()
+        channel.attach(cadenceSensor)
+        channel.attach(speedSensor)
+        console.log('Sensors Attached')
+    }
+    else {  // device ID known
+        console.log(`Connecting with id=${deviceID}`)
+        const speedSensor = new SpeedSensor(deviceID)
+        channel.startSensor(speedSensor)
     }
 }
 
-function randomTS(start, end) {
-    return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+function onDetected(profile, deviceID) {
+	console.log(`detected device: ANT+${profile} ${deviceID}`);
 }
 
-function randomInt(min, max) {
-    return (Math.random() * (max - min + 1) + min).toFixed(2);
+function onData(profile, deviceID, data) {
+    const currentTime=Date.now();
+    
+        if(profile=="SPD"){
+            if(currentTime-lastPrintSpeedTime>=msg_limit){
+                if(debug==true )console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
+                send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revoltion:data.CumulativeSpeedRevolutionCount})
+                lastPrintSpeedTime=currentTime
+            }
+        }
+        else{
+            if(currentTime-lastPrintCadenceTime>=msg_limit){
+                if(debug==true )console.log(`id: ANT+${profile} ${deviceID}, cadence: ${data.CalculatedCadence}`);
+                send({ts:new Date(),cadence:data.CalculatedCadence,lastevent:data.CadenceEventTime})
+                lastPrintCadenceTime=currentTime
+            }
+        }
+
 }
 
-async function simulateSensor(){
+async function onAppExit() {
+    if(socket)
+        socket.close();
+        if(debug==true ) console.log("Closing Socket...")
+        if(debug==true ) console.log("Closing Ant...")
+    await ant.close();
+    return 0;
 }
-initANT()
-module.exports = { initANT }
 
+process.on('SIGINT', async () => await onAppExit());  // CTRL+C
+process.on('SIGQUIT', async () => await onAppExit()); // Keyboard quit
+process.on('SIGTERM', async () => await onAppExit()); // `kill` command
+
+
+const args = process.argv.slice(2);
+const deviceID = args.length > 0 ? args[0] : undefined;
+
+initAnt(deviceID);

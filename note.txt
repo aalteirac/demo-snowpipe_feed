@@ -5,7 +5,7 @@ pip install docker-compose, require sudo to run, need a fix
 
 export jar, delete it BEFORE
 
-on the raps for testing node you need nodejs 8 and npm and 
+on the raps for testing node you need nodejs 18 and npm and 
 
 curl -fsSL https://deb.nodesource.com/setup_8.x | sudo -E bash -
 sudo apt install nodejs
@@ -19,4 +19,14 @@ SUBSYSTEM=="usb", ATTRS{idVendor}=="0fcf", ATTRS{idProduct}=="1009", RUN+="/sbin
 
 Seems node 18 is the image to go for usb node lib. with devices on ttyUSB0 (need to ensure ANT stick is always mounted on this one)
 
+
+TODO:
+- ENV var for settings, credentials on Java streamer & Front
+- Link ant-feeder to java sdk streamer
+    - option to supend streaming
+- Document Snowflake target table
+- Document Snowflake rsa key generation
+- Document How to change rsa key, account, username, db, schema and table for Java SDK streamer
+- Document How to change rsa key, account, username, db, schema and table for Java SDK streamer
+- Document how to change front snowflake connection
 

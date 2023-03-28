@@ -1,12 +1,15 @@
 const { SpeedSensor, CadenceSensor } = require('incyclist-ant-plus');
 const { AntDevice } = require('incyclist-ant-plus/lib/bindings')
-const express = require("express")
+const express = require("express");
+const req= require("request");
 const socketIO = require('socket.io');
-const http = require('http')
+const http = require('http');
 const port = process.env.SOCKET_PORT || 4321;
+const urlStreaming = process.env.URL_STREAMING || 'http://localhost:8100/test';
 var debug = process.env.DEBUG || false;
+var ingest = process.env.INGEST_ENABLE || true;
 const wheelCircumference = process.env.WHEEL_SIZE || 2.118;
-const frequence = process.env.FREQ_SENSOR || 1000;
+const frequence = process.env.FREQ_SENSOR || 800;
 
 let server = http.createServer(express()) 
 let cr= {
@@ -34,23 +37,35 @@ function initSocket(){
         if(debug==true )console.log(`New user connected ${socket.id}`)
         socket.on("message", (data) => {
             let event = JSON.parse(data)
-            if(debug==true )console.log('EVENT',event)
+            if(debug==true)console.log('EVENT',event)
         })
     });
 }
 
 function send(msg){
     if(socket){
+        if(ingest==true){
+            req.post({
+                url:urlStreaming,
+                json:msg
+            }, (err,resp,body)=>{
+                if(err)console.log(err)
+                if(debug==true )console.log(body);
+            }
+            )
+        }
         socket.emit('data',msg);
     }
         
 }
 
 async function startAll(deviceID = -1) {
-    debug = (debug === 'true' || debug === 'True');
+    debug = (debug === 'true' || debug === 'True' || debug==true);
+    ingest = (ingest === 'true' || ingest === 'True' || ingest==true);
     console.log('ENV FREQ_SENSOR:',frequence);
     console.log('ENV WHEEL_SIZE:',wheelCircumference);
     console.log('ENV PORT:',port);
+    console.log('ENV INGEST_ENABLE:',ingest);
     console.log('ENV DEBUG:',debug);
     initSocket();
     const opened = await ant.open()
@@ -91,12 +106,12 @@ function onData(profile, deviceID, data) {
             if(debug==true )
                 console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
             if(data.Motion==false){
-                send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revoltion:data.CumulativeSpeedRevolutionCount})
+                send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revolution:data.CumulativeSpeedRevolutionCount,cadence:lastCadenceCheck})
                 lastSpeedCheck=data.CalculatedSpeed;
             }
             else{
                 if(lastSpeedCheck!=0){
-                    send({ts:new Date(),move:!data.Motion,speed:0,distance:0,total_revoltion:data.CumulativeSpeedRevolutionCount})
+                    send({ts:new Date(),move:!data.Motion,speed:0,distance:0,total_revoltion:data.CumulativeSpeedRevolutionCount,cadence:0})
                 }
                 lastSpeedCheck=0;    
             }
@@ -108,14 +123,10 @@ function onData(profile, deviceID, data) {
             if(debug==true)
                 console.log(`id: ANT+${profile} ${deviceID}, cadence: ${data.CalculatedCadence}`);
             if(lastCadenceEvent!=data.CadenceEventTime){ 
-                send({ts:new Date(),cadence:data.CalculatedCadence,lastevent:data.CadenceEventTime});
                 lastCadenceCheck=data.CalculatedCadence; 
                 lastCadenceEvent=data.CadenceEventTime;  
             }
             else{
-                if(lastCadenceCheck!=0){ 
-                    send({ts:new Date(),cadence:0,lastevent:data.CadenceEventTime});
-                }
                 lastCadenceCheck=0;
             }
             lastPrintCadenceTime=currentTime

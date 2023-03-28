@@ -11,6 +11,8 @@ services:
       - DEBUG=false
       - WHEEL_SIZE=2.8
       - FREQ_SENSOR=1000
+      - INGEST_ENABLE=true
+      - URL_STREAMING=http://10.0.0.11:8100/test
     build:
       context: ./
       dockerfile: Dockerfile

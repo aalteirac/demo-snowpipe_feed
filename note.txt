@@ -24,6 +24,7 @@ TODO:
 - ENV var for settings, credentials on Java streamer & Front
 - Link ant-feeder to java sdk streamer
     - option to supend streaming
+- Merge all in a single docker compose yaml.    
 - Document Snowflake target table
 - Document Snowflake rsa key generation
 - Document How to change rsa key, account, username, db, schema and table for Java SDK streamer

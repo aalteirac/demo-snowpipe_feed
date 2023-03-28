@@ -17,6 +17,9 @@ let cr= {
 let io = socketIO(server,{cors:cr}) 
 
 let socket;
+let lastSpeedCheck=-1;
+let lastCadenceCheck=-1;
+let lastCadenceEvent=-1;
 
 const ant = new AntDevice({ startupTimeout: 2000 })
 
@@ -85,15 +88,36 @@ function onData(profile, deviceID, data) {
     const currentTime=Date.now();
     if(profile=="SPD"){
         if(currentTime-lastPrintSpeedTime>=frequence){
-            if(debug==true )console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
-            send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revoltion:data.CumulativeSpeedRevolutionCount})
+            if(debug==true )
+                console.log(`id: ANT+${profile} ${deviceID}, speed: ${data.CalculatedSpeed}, distance: ${data.CalculatedDistance}, TotalRevolutions:${data.CumulativeSpeedRevolutionCount},Motion:${data.Motion}`);
+            if(data.Motion==false){
+                send({ts:new Date(),move:!data.Motion,speed:data.CalculatedSpeed,distance:data.CalculatedDistance,total_revoltion:data.CumulativeSpeedRevolutionCount})
+                lastSpeedCheck=data.CalculatedSpeed;
+            }
+            else{
+                if(lastSpeedCheck!=0){
+                    send({ts:new Date(),move:!data.Motion,speed:0,distance:0,total_revoltion:data.CumulativeSpeedRevolutionCount})
+                }
+                lastSpeedCheck=0;    
+            }
             lastPrintSpeedTime=currentTime
         }
     }
     else{
         if(currentTime-lastPrintCadenceTime>=frequence){
-            if(debug==true )console.log(`id: ANT+${profile} ${deviceID}, cadence: ${data.CalculatedCadence}`);
-            send({ts:new Date(),cadence:data.CalculatedCadence,lastevent:data.CadenceEventTime})
+            if(debug==true)
+                console.log(`id: ANT+${profile} ${deviceID}, cadence: ${data.CalculatedCadence}`);
+            if(lastCadenceEvent!=data.CadenceEventTime){ 
+                send({ts:new Date(),cadence:data.CalculatedCadence,lastevent:data.CadenceEventTime});
+                lastCadenceCheck=data.CalculatedCadence; 
+                lastCadenceEvent=data.CadenceEventTime;  
+            }
+            else{
+                if(lastCadenceCheck!=0){ 
+                    send({ts:new Date(),cadence:0,lastevent:data.CadenceEventTime});
+                }
+                lastCadenceCheck=0;
+            }
             lastPrintCadenceTime=currentTime
         }
     }

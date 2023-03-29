@@ -5,7 +5,7 @@ const req= require("request");
 const socketIO = require('socket.io');
 const http = require('http');
 const port = process.env.SOCKET_PORT || 4321;
-const urlStreaming = process.env.URL_STREAMING || 'http://localhost:8100/test';
+const hostStreaming = process.env.HOST_STREAMING || 'localhost';
 var debug = process.env.DEBUG || false;
 var ingest = process.env.INGEST_ENABLE || true;
 const wheelCircumference = process.env.WHEEL_SIZE || 2.118;
@@ -46,7 +46,7 @@ function send(msg){
     if(socket){
         if(ingest==true){
             req.post({
-                url:urlStreaming,
+                url:`http://${hostStreaming}:8100/test`,
                 json:msg
             }, (err,resp,body)=>{
                 if(err)console.log(err)

@@ -1,7 +1,16 @@
 version: "3"
 
 services:
+  snow-connect-rasp:
+    restart: always
+    build:
+      context: ./
+      dockerfile: DockerfileSDK
+    ports:
+      - 8100:8100
   alteirac-ant-feed:
+    depends_on:
+    - snow-connect-rasp
     restart: always
     privileged: true
     devices:
@@ -9,10 +18,10 @@ services:
     environment:
       - SOCKET_PORT= 4321
       - DEBUG=false
-      - WHEEL_SIZE=2.8
-      - FREQ_SENSOR=1000
+      - WHEEL_SIZE=4.8
+      - FREQ_SENSOR=800
       - INGEST_ENABLE=true
-      - URL_STREAMING=http://10.0.0.11:8100/test
+      - HOST_STREAMING=snow-connect-rasp
     build:
       context: ./
       dockerfile: Dockerfile
